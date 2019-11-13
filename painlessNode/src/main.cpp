@@ -96,6 +96,8 @@ void sendMessage() {
   msg += " myFreeMemory: " + String(ESP.getFreeHeap());
   mesh.sendBroadcast(msg);
 
+  calc_delay = true;
+
   if (calc_delay) {
     SimpleList<uint32_t>::iterator node = nodes.begin();
     while (node != nodes.end()) {
@@ -151,5 +153,5 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 }
 
 void delayReceivedCallback(uint32_t from, int32_t delay) {
-  Serial.printf("Delay to node %u is %d us\n", from, delay);
+  Serial.printf("Delay to node %u is %.1fms\n", from, delay*1.0/1000);
 }
