@@ -19,6 +19,7 @@
 #define   BLINK_DURATION  100  // milliseconds LED is on for
 
 #define   MESH_SSID       "MESH_985944217"
+// #define   MESH_SSID       "MESH_3209035285"// M5Stick
 #define   MESH_PASSWORD   "somethingSneaky"
 #define   MESH_PORT       5555
 
