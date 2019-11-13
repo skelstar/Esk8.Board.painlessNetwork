@@ -28,6 +28,7 @@
 
 // Prototypes
 void sendMessage(); 
+unsigned long getSendInterval();
 void receivedCallback(uint32_t from, String & msg);
 void newConnectionCallback(uint32_t nodeId);
 void changedConnectionCallback(); 
@@ -41,7 +42,7 @@ bool calc_delay = false;
 SimpleList<uint32_t> nodes;
 
 void sendMessage() ; // Prototype
-Task taskSendMessage( TASK_SECOND * 1, TASK_FOREVER, &sendMessage ); // start with a one second interval
+Task t_sendMessage( TASK_SECOND * 1, TASK_FOREVER, &sendMessage ); // start with a one second interval
 
 //----------------------------------------------------------------
 
@@ -57,10 +58,10 @@ void setup() {
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
   mesh.onNodeDelayReceived(&delayReceivedCallback);
 
-  userScheduler.addTask( taskSendMessage );
-  taskSendMessage.enable();
+  userScheduler.addTask( t_sendMessage );
 
-  randomSeed(analogRead(A0));
+  t_sendMessage.setInterval( getSendInterval() );
+  t_sendMessage.enable();
 }
 
 void loop() {
@@ -70,7 +71,15 @@ void loop() {
 //----------------------------------------------------------------
 
 unsigned long getSendInterval() {
-  return random(TASK_SECOND * 1, TASK_SECOND * 5);
+  uint32_t nodeId = mesh.getNodeId();
+  switch (nodeId) {
+    // case NODE_M5STICK:
+    // case NODE_BROKEN_T:
+    case NODE_ESP32DEV:
+      return 200;
+    default:
+      return 1000;
+  }
 }
 
 void sendMessage() {
@@ -80,7 +89,9 @@ void sendMessage() {
   msg += mesh.getNodeId();
   msg += " myFreeMemory: " + String(ESP.getFreeHeap());
   
-  mesh.sendBroadcast(msg);
+  // mesh.sendSingle(NODE_M5STICK, msg);
+
+  // mesh.sendBroadcast(msg);
 
   if (calc_delay) {
     SimpleList<uint32_t>::iterator node = nodes.begin();
@@ -90,15 +101,12 @@ void sendMessage() {
     }
     calc_delay = false;
   }
-
-  Serial.printf("Sending message: %s\n", msg.c_str());
-  
-  taskSendMessage.setInterval( getSendInterval() );  // between 1 and 5 seconds
+  // Serial.printf("Sending message: %s\n", msg.c_str());
 }
 
 
 void receivedCallback(uint32_t from, String & msg) {
-  Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
+  // Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -124,9 +132,13 @@ void changedConnectionCallback() {
 }
 
 void nodeTimeAdjustedCallback(int32_t offset) {
-  Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(), offset);
+  // Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(), offset);
 }
 
+#define DELAY_TOO_LONG_MS   50
+
 void delayReceivedCallback(uint32_t from, int32_t delay) {
-  Serial.printf("Delay to node %u is %.1fms\n", from, delay*1.0/1000);
+  if (delay > DELAY_TOO_LONG_MS * 1000) {
+    Serial.printf("Delay to node %u is %.1fms\n", from, delay*1.0/1000);
+  }
 }
